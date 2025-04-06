@@ -17,37 +17,66 @@ const Alogin = () => {
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     let payload = { email: loginEmail, password: loginPassword };
-    axios.post("http://localhost:5000/alogin", payload)
-      .then((res) => {
-        console.log("login: " + res.data.Status);
-        if (res.data.Status === "Success") {
-          console.log(res.data.user);
-          localStorage.setItem('user', JSON.stringify(res.data.user));
-          toast.success("Login successful");
-          setTimeout(() => navigate('/ahome'), 2000); // Add a delay before navigation
-        } else {
-          toast.error(res.data.message || "Login failed");
-        }
-      })
-      .catch((err) => console.log(err));
+    
+    try {
+      const response = await axios.post("http://localhost:5000/api/admin/login", payload);
+      
+      if (response.data.status === "Success") {
+        console.log(response.data.data);
+        localStorage.setItem('user', JSON.stringify(response.data.data));
+        toast.success("Login successful");
+        setTimeout(() => navigate('/ahome'), 2000); // Add a delay before navigation
+      } else {
+        toast.error(response.data.message || "Login failed");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        toast.error(error.response.data.message || "Login failed");
+      } else if (error.request) {
+        // The request was made but no response was received
+        toast.error("No response from server. Please try again.");
+      } else {
+        // Something happened in setting up the request
+        toast.error("Error during login. Please try again.");
+      }
+    }
   };
 
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
     let payload = { name: signupName, email: signupEmail, password: signupPassword };
-    axios.post("http://localhost:5000/asignup", payload)
-      .then((result) => {
-        console.log(result);
-        if (result.data.Status === "Success") {
-          toast.success("Account created");
-        } else {
-          toast.error(result.data.message || "Already a user");
-        }
-      })
-      .catch((err) => {
-        console.log(err);
-        toast.error("Failed to create an account");
-      });
+    
+    try {
+      const response = await axios.post("http://localhost:5000/api/admin/signup", payload);
+      
+      if (response.data.status === "Success") {
+        toast.success(response.data.message || "Account created successfully");
+        // Clear form fields after successful signup
+        setSignupName('');
+        setSignupEmail('');
+        setSignupPassword('');
+      } else {
+        toast.error(response.data.message || "Failed to create account");
+      }
+    } catch (error) {
+      console.error("Signup error:", error);
+      
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        toast.error(error.response.data.message || "Failed to create account");
+      } else if (error.request) {
+        // The request was made but no response was received
+        toast.error("No response from server. Please try again.");
+      } else {
+        // Something happened in setting up the request
+        toast.error("Error during signup. Please try again.");
+      }
+    }
   };
 
   return (
