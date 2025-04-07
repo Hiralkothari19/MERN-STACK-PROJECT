@@ -16,7 +16,7 @@ const Ulogin = () => {
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     let payload = { email: loginEmail, password: loginPassword };
-    axios.post("http://localhost:5000/ulogin", payload)
+    axios.post("http://localhost:5000/api/user/login", payload)
       .then((res) => {
         console.log("login: " + res.data.Status);
         if (res.data.Status === "Success") {
@@ -34,7 +34,7 @@ const Ulogin = () => {
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
     let payload = { name: signupName, email: signupEmail, password: signupPassword };
-    axios.post("http://localhost:5000/usignup", payload)
+    axios.post("http://localhost:5000/api/user/signup", payload)
       .then((result) => {
         console.log(result);
         if (result.data.Status === "Success") {
