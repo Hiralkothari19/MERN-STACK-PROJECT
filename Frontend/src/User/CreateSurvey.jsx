@@ -1,176 +1,505 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import Navbar from './Navbar';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { PlusCircle, Trash2, Save, X, HelpCircle, Copy, CheckCircle, Edit3, AlertTriangle } from 'lucide-react';
+import Navbar from './Navbar';  // Assuming you have a Navbar component
 
 const CreateSurvey = () => {
-    const [title, setTitle] = useState('');
-    const [questions, setQuestions] = useState([{ question: '', options: [''] }]);
-    const [surveyId, setSurveyId] = useState('');
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [questions, setQuestions] = useState([{ question: '', options: [''], type: 'multiple-choice' }]);
+  const [surveyId, setSurveyId] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+  const [activeQuestion, setActiveQuestion] = useState(0);
+  const [showTips, setShowTips] = useState(false);
+  
+  const navigate = useNavigate();
 
-    const handleQuestionChange = (index, event) => {
-        const newQuestions = questions.slice();
-        newQuestions[index].question = event.target.value;
-        setQuestions(newQuestions);
-    };
+  useEffect(() => {
+    // Check if user is logged in
+    const user = localStorage.getItem('user');
+    if (!user) {
+      toast.error("Please login to create a survey");
+      setTimeout(() => navigate('/login'), 2000);
+    }
+  }, [navigate]);
 
-    const handleOptionChange = (qIndex, oIndex, event) => {
-        const newQuestions = questions.slice();
-        newQuestions[qIndex].options[oIndex] = event.target.value;
-        setQuestions(newQuestions);
-    };
+  const addQuestion = () => {
+    setQuestions([...questions, { question: '', options: [''], type: 'multiple-choice' }]);
+    // Set new question as active
+    setActiveQuestion(questions.length);
+    // Scroll to the new question after a short delay
+    setTimeout(() => {
+      document.getElementById(`question-${questions.length}`)?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
 
-    const addQuestion = () => {
-        setQuestions([...questions, { question: '', options: [''] }]);
-    };
+  const removeQuestion = (qIndex) => {
+    if (questions.length === 1) {
+      toast.warning("Your survey needs at least one question");
+      return;
+    }
+    
+    const newQuestions = [...questions];
+    newQuestions.splice(qIndex, 1);
+    setQuestions(newQuestions);
+    
+    // Adjust active question if needed
+    if (activeQuestion >= qIndex && activeQuestion > 0) {
+      setActiveQuestion(activeQuestion - 1);
+    }
+  };
 
-    const removeQuestion = (qIndex) => {
-        const newQuestions = questions.filter((_, index) => index !== qIndex);
-        setQuestions(newQuestions);
-    };
+  const handleQuestionChange = (qIndex, e) => {
+    const newQuestions = [...questions];
+    newQuestions[qIndex].question = e.target.value;
+    setQuestions(newQuestions);
+  };
 
-    const addOption = (qIndex) => {
-        const newQuestions = questions.slice();
-        newQuestions[qIndex].options.push('');
-        setQuestions(newQuestions);
-    };
+  const handleQuestionTypeChange = (qIndex, type) => {
+    const newQuestions = [...questions];
+    newQuestions[qIndex].type = type;
+    // If changing to text response type, remove options
+    if (type === 'text') {
+      newQuestions[qIndex].options = [];
+    } else if (newQuestions[qIndex].options.length === 0) {
+      // If changing from text to a type with options, add one empty option
+      newQuestions[qIndex].options = [''];
+    }
+    setQuestions(newQuestions);
+  };
 
-    const removeOption = (qIndex, oIndex) => {
-        const newQuestions = questions.slice();
-        newQuestions[qIndex].options.splice(oIndex, 1);
-        setQuestions(newQuestions);
-    };
+  const addOption = (qIndex) => {
+    const newQuestions = [...questions];
+    newQuestions[qIndex].options.push('');
+    setQuestions(newQuestions);
+  };
 
-    const handleSubmit = async (event) => {
-        event.preventDefault();
-        
-        const user = JSON.parse(localStorage.getItem('user'));
-        const userId = user.id;
-        const userName = user.name;
+  const removeOption = (qIndex, oIndex) => {
+    if (questions[qIndex].options.length === 1) {
+      toast.warning("Question needs at least one option");
+      return;
+    }
+    
+    const newQuestions = [...questions];
+    newQuestions[qIndex].options.splice(oIndex, 1);
+    setQuestions(newQuestions);
+  };
 
-        const newSurvey = { title, questions, userId, userName };
-        try {
-            const response = await axios.post('http://localhost:5000/api/surveys/create', newSurvey);
-            setTitle('');
-            setQuestions([{ question: '', options: [''] }]);
-            setSurveyId(response.data.surveyId);
-            toast.success("Form Created Successfully");
-        } catch (error) {
-            console.error('There was an error submitting the form!', error);
-            toast.error("Failed to create the survey");
+  const handleOptionChange = (qIndex, oIndex, e) => {
+    const newQuestions = [...questions];
+    newQuestions[qIndex].options[oIndex] = e.target.value;
+    setQuestions(newQuestions);
+  };
+
+  const copyToClipboard = () => {
+    const surveyLink = `http://localhost:5173/respond/${surveyId}`;
+    navigator.clipboard.writeText(surveyLink)
+      .then(() => {
+        setIsCopied(true);
+        toast.success("Survey link copied to clipboard!");
+        setTimeout(() => setIsCopied(false), 3000);
+      })
+      .catch(err => {
+        toast.error("Failed to copy link");
+        console.error('Failed to copy: ', err);
+      });
+  };
+
+  const validateForm = () => {
+    if (!title.trim()) {
+      toast.error("Please enter a survey title");
+      return false;
+    }
+
+    for (let i = 0; i < questions.length; i++) {
+      if (!questions[i].question.trim()) {
+        toast.error(`Question ${i + 1} cannot be empty`);
+        setActiveQuestion(i);
+        return false;
+      }
+
+      // Validate options for multiple choice questions
+      if (questions[i].type !== 'text') {
+        for (let j = 0; j < questions[i].options.length; j++) {
+          if (!questions[i].options[j].trim()) {
+            toast.error(`Option ${j + 1} in question ${i + 1} cannot be empty`);
+            setActiveQuestion(i);
+            return false;
+          }
         }
-    };
+      }
+    }
+    return true;
+  };
 
-    return (
-        <div className="min-h-screen bg-gradient-to-r from-blue-200 to-purple-300">
-            <Navbar />
-            <div className="max-w-xl mx-auto p-6 rounded-lg shadow-lg mt-8 bg-purple-400 to-blue-400">
-                <h2 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-700 to-red-300 text-center">
-                    Create Customized Survey
-                </h2>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                        <label className="block text-lg font-semibold text-gray-700">Survey Title</label>
-                        <input
-                            type="text"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            className="border rounded-md p-2 w-full mt-1"
-                            required
-                        />
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+    
+    try {
+      const user = JSON.parse(localStorage.getItem('user'));
+      
+      const formattedQuestions = questions.map(q => ({
+        question: q.question,
+        type: q.type,
+        options: q.type !== 'text' ? q.options : []
+      }));
+
+      const formData = {
+        title,
+        description,
+        questions: formattedQuestions,
+        userId: user.id,
+        userName: user.name
+      };
+
+      const response = await axios.post('http://localhost:5000/api/surveys', formData);
+      
+      if (response.data && response.data.Status === "Success") {
+        toast.success("Survey created successfully!");
+        setSurveyId(response.data.data.surveyId);
+        
+        // Smoothly scroll to the share section
+        setTimeout(() => {
+          document.getElementById('share-section')?.scrollIntoView({ behavior: 'smooth' });
+        }, 500);
+      } else {
+        toast.error(response.data?.message || "Failed to create survey");
+      }
+    } catch (error) {
+      console.error("There was an error submitting the form!", error);
+      toast.error("Failed to create survey. Please try again later.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleTips = () => {
+    setShowTips(!showTips);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100">
+      <Navbar />
+      
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-indigo-600">
+            Create Your Survey
+          </h1>
+          <p className="text-gray-600 mt-2">Design a professional survey in minutes</p>
+          
+          <button 
+            className="mt-4 flex items-center mx-auto text-indigo-600 hover:text-indigo-800"
+            onClick={toggleTips}
+          >
+            <HelpCircle size={16} className="mr-1" />
+            {showTips ? "Hide tips" : "Show tips"}
+          </button>
+          
+          {showTips && (
+            <div className="mt-4 bg-white p-4 rounded-lg shadow-md text-left">
+              <h3 className="font-semibold text-indigo-700 mb-2">Tips for creating effective surveys:</h3>
+              <ul className="text-gray-700 space-y-2">
+                <li>• Keep your questions clear and concise</li>
+                <li>• Avoid leading or biased questions</li>
+                <li>• Group related questions together</li>
+                <li>• Include a mix of question types for better insights</li>
+                <li>• Test your survey before sharing it widely</li>
+              </ul>
+            </div>
+          )}
+        </div>
+        
+        {/* Main Form */}
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-xl overflow-hidden">
+          {/* Survey Details */}
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Survey Details</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">
+                  Survey Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Enter a descriptive title for your survey"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">
+                  Description <span className="text-gray-400">(optional)</span>
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Provide additional context about your survey"
+                  rows="3"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                />
+              </div>
+            </div>
+          </div>
+          
+          {/* Questions Section */}
+          <div className="bg-gray-50 p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">Questions</h2>
+              <button
+                type="button"
+                onClick={addQuestion}
+                className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                <PlusCircle size={18} className="mr-2" />
+                Add Question
+              </button>
+            </div>
+            
+            {/* Question Cards */}
+            <div className="space-y-6">
+              {questions.map((q, qIndex) => (
+                <div 
+                  key={qIndex} 
+                  id={`question-${qIndex}`}
+                  className={`bg-white rounded-lg shadow-md overflow-hidden transition-all ${activeQuestion === qIndex ? 'ring-2 ring-indigo-500' : ''}`}
+                >
+                  {/* Question Header */}
+                  <div 
+                    className="flex justify-between items-center px-4 py-3 bg-gray-100 cursor-pointer"
+                    onClick={() => setActiveQuestion(qIndex)}
+                  >
+                    <h3 className="font-semibold text-gray-700">
+                      Question {qIndex + 1}
+                    </h3>
+                    <div className="flex items-center">
+                      <div className="mr-4">
+                        <select
+                          value={q.type}
+                          onChange={(e) => handleQuestionTypeChange(qIndex, e.target.value)}
+                          className="text-sm border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <option value="multiple-choice">Multiple Choice</option>
+                          <option value="checkbox">Checkbox (Multiple Answers)</option>
+                          <option value="text">Text Response</option>
+                        </select>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeQuestion(qIndex);
+                        }}
+                        className="text-red-500 hover:text-red-700 transition-colors"
+                        aria-label="Remove question"
+                      >
+                        <Trash2 size={18} />
+                      </button>
                     </div>
-                    {questions.map((q, qIndex) => (
-                        <div key={qIndex} className="border p-4 rounded mt-4 bg-gray-50">
-                            <div className="flex justify-between">
-                                <label className="block text-lg font-semibold text-gray-700">Question {qIndex + 1}</label>
-                                <button
-                                    type="button"
-                                    onClick={() => removeQuestion(qIndex)}
-                                    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-                                >
-                                    Remove Question
-                                </button>
+                  </div>
+                  
+                  {/* Question Content */}
+                  <div className={`p-4 ${activeQuestion === qIndex ? 'block' : 'hidden'}`}>
+                    <div className="mb-4">
+                      <input
+                        type="text"
+                        value={q.question}
+                        onChange={(e) => handleQuestionChange(qIndex, e)}
+                        placeholder="Enter your question here"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        required
+                      />
+                    </div>
+                    
+                    {/* Options Section (Only for multiple-choice and checkbox) */}
+                    {q.type !== 'text' && (
+                      <div className="space-y-3">
+                        <label className="block text-gray-700 font-medium">
+                          Options <span className="text-red-500">*</span>
+                        </label>
+                        
+                        {q.options.map((option, oIndex) => (
+                          <div key={oIndex} className="flex items-center">
+                            <div className="w-6 mr-2 text-gray-400">
+                              {q.type === 'multiple-choice' ? (
+                                <div className="w-4 h-4 rounded-full border-2 border-gray-400"></div>
+                              ) : (
+                                <div className="w-4 h-4 rounded border-2 border-gray-400"></div>
+                              )}
                             </div>
                             <input
-                                type="text"
-                                value={q.question}
-                                onChange={(e) => handleQuestionChange(qIndex, e)}
-                                className="border rounded-md p-2 w-full mt-2"
-                            required
-
+                              type="text"
+                              value={option}
+                              onChange={(e) => handleOptionChange(qIndex, oIndex, e)}
+                              placeholder={`Option ${oIndex + 1}`}
+                              className="flex-grow px-3 py-2 border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500"
+                              required
                             />
-                            {q.options.map((o, oIndex) => (
-                                <div key={oIndex} className="mt-2">
-                                    <div className="flex justify-between">
-                                        <label className="block text-sm font-medium text-gray-700">Option {oIndex + 1}</label>
-                                        <button
-                                            type="button"
-                                            onClick={() => removeOption(qIndex, oIndex)}
-                                            className="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600"
-                                        >
-                                            Remove Option
-                                        </button>
-                                    </div>
-                                    <input
-                                        type="text"
-                                        value={o}
-                                        onChange={(e) => handleOptionChange(qIndex, oIndex, e)}
-                                        className="border rounded-md p-2 w-full mt-1"
-                                    />
-                                </div>
-                            ))}
                             <button
-                                type="button"
-                                onClick={() => addOption(qIndex)}
-                                className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                              type="button"
+                              onClick={() => removeOption(qIndex, oIndex)}
+                              className="ml-2 text-red-500 hover:text-red-700"
+                              aria-label="Remove option"
                             >
-                                Add Option
+                              <X size={18} />
                             </button>
+                          </div>
+                        ))}
+                        
+                        <button
+                          type="button"
+                          onClick={() => addOption(qIndex)}
+                          className="mt-2 flex items-center text-indigo-600 hover:text-indigo-800"
+                        >
+                          <PlusCircle size={16} className="mr-1" />
+                          Add Option
+                        </button>
+                      </div>
+                    )}
+                    
+                    {q.type === 'text' && (
+                      <div className="bg-gray-100 border border-gray-300 rounded-lg p-4">
+                        <p className="text-gray-500 italic">
+                          This question will allow respondents to enter a free-form text response.
+                        </p>
+                        <div className="mt-2 p-2 bg-white border border-gray-300 rounded min-h-16 text-gray-400">
+                          Text response will appear here
                         </div>
-                    ))}
-                    <div className="flex justify-between mt-6">
-                        <button
-                            type="button"
-                            onClick={addQuestion}
-                            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-                        >
-                            Add Question
-                        </button>
-                        <button
-                            type="submit"
-                            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                        >
-                            Create Survey
-                        </button>
-                    </div>
-                </form>
-                {surveyId && (
-                    <div className="mt-6">
-                        <h3 className="text-lg font-bold text-blue-800">Share this survey Link with others:</h3>
-                        <a
-                            href={`http://localhost:5173/respond/${surveyId}`}
-                            target="_blank"
-                            className="text-blue-500 hover:underline"
-                        >
-                            {`http://localhost:5173/respond/${surveyId}`}
-                        </a>
-                    </div>
-                )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-            <ToastContainer
-                position="top-center"
-                autoClose={1000}
-                hideProgressBar={false}
-                newestOnTop={false}
-                closeOnClick
-                rtl={false}
-                pauseOnFocusLoss
-                draggable
-                pauseOnHover
-            />
-        </div>
-    );
+            
+            {/* Empty State */}
+            {questions.length === 0 && (
+              <div className="text-center py-8">
+                <AlertTriangle size={48} className="mx-auto text-amber-500 mb-4" />
+                <p className="text-gray-600">Your survey needs at least one question.</p>
+                <button
+                  type="button"
+                  onClick={addQuestion}
+                  className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                >
+                  Add a Question
+                </button>
+              </div>
+            )}
+          </div>
+          
+          {/* Submit Button */}
+          <div className="p-6 bg-white border-t border-gray-200">
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className={`px-6 py-3 rounded-lg flex items-center font-medium ${
+                  isLoading 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md hover:shadow-lg transition-all'
+                }`}
+              >
+                {isLoading ? (
+                  <>
+                    <div className="w-5 h-5 border-t-2 border-b-2 border-white rounded-full animate-spin mr-2"></div>
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Save size={18} className="mr-2" />
+                    Create Survey
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </form>
+        
+        {/* Share Section */}
+        {surveyId && (
+          <div id="share-section" className="mt-8 bg-white rounded-xl shadow-xl p-6 border-l-4 border-green-500">
+            <div className="flex items-center text-green-600 mb-4">
+              <CheckCircle size={24} className="mr-2" />
+              <h2 className="text-2xl font-bold">Survey Created Successfully!</h2>
+            </div>
+            
+            <p className="text-gray-600 mb-4">
+              Your survey is now ready to be shared. Use the link below to distribute your survey to participants.
+            </p>
+            
+            <div className="flex items-center bg-gray-100 p-3 rounded-lg mb-4">
+              <input
+                type="text"
+                value={`http://localhost:5173/respond/${surveyId}`}
+                readOnly
+                className="bg-transparent flex-grow outline-none text-gray-700"
+              />
+              <button
+                onClick={copyToClipboard}
+                className="ml-2 flex items-center px-3 py-1 rounded bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+              >
+                {isCopied ? <CheckCircle size={16} className="mr-1" /> : <Copy size={16} className="mr-1" />}
+                {isCopied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+            
+            <div className="flex flex-wrap gap-4">
+              <button
+                onClick={() => navigate('/mysurveyforms')}
+                className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              >
+                <Edit3 size={18} className="mr-2" />
+                Manage Surveys
+              </button>
+              
+              <button
+                onClick={() => {
+                  // Reset form for a new survey
+                  setTitle('');
+                  setDescription('');
+                  setQuestions([{ question: '', options: [''], type: 'multiple-choice' }]);
+                  setSurveyId('');
+                  setActiveQuestion(0);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="flex items-center px-4 py-2 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50"
+              >
+                <PlusCircle size={18} className="mr-2" />
+                Create Another Survey
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+      
+      <ToastContainer
+        position="top-center"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
+    </div>
+  );
 };
 
 export default CreateSurvey;
