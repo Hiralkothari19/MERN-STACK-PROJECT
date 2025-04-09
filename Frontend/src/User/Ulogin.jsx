@@ -15,20 +15,42 @@ const Ulogin = () => {
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    let payload = { email: loginEmail, password: loginPassword };
-    axios.post("http://localhost:5000/api/user/login", payload)
-      .then((res) => {
-        console.log("login: " + res.data.Status);
-        if (res.data.Status === "Success") {
-          console.log(res.data.user);
-          localStorage.setItem('user', JSON.stringify(res.data.user));
-          toast.success("Login successful");
-          setTimeout(() => navigate('/createsurvey'), 2000); // Add a delay before navigation
-        } else {
-          toast.error(res.data.message || "Login failed");
-        }
-      })
-      .catch((err) => console.log(err));
+    try {
+      const payload = { email: loginEmail, password: loginPassword };
+      console.log("Sending login request with payload:", payload);
+      
+      const response = await axios.post("http://localhost:5000/api/user/login", payload);
+      console.log("Login response:", response.data);
+      
+      if (response.data && response.data.Status === "Success") {
+        console.log("Login successful, user data:", response.data.user);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        toast.success("Login successful");
+        setTimeout(() => navigate('/createsurvey'), 2000);
+      } else {
+        const errorMessage = response.data?.message || "Login failed - unexpected response format";
+        console.error("Login error:", errorMessage);
+        toast.error(errorMessage);
+      }
+    } catch (error) {
+      console.error("Login request failed:", error);
+      
+      // More detailed error handling
+      if (error.response) {
+        // The server responded with a status code outside the 2xx range
+        console.error("Server response:", error.response.data);
+        console.error("Status code:", error.response.status);
+        toast.error(`Login failed: ${error.response.data.message || 'Server error'}`);
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error("No response received");
+        toast.error("Login failed: No response from server");
+      } else {
+        // Something happened in setting up the request
+        console.error("Error message:", error.message);
+        toast.error(`Login failed: ${error.message}`);
+      }
+    }
   };
 
   const handleSignupSubmit = async (e) => {

@@ -10,32 +10,48 @@ const MyForms = () => {
 
     useEffect(() => {
         const user = JSON.parse(localStorage.getItem('user'));
-
+    
         if (user) {
             const fetchSurveyForms = async () => {
                 try {
-                    const response = await axios.get(`http://localhost:5000/mysurveyforms/${user.id}`);
-                    setSurveyForms(response.data);
+                    // Use the correct endpoint for fetching surveys by user ID
+                    const response = await axios.get(`http://localhost:5000/api/surveys/user/${user.id}`);
+                    
+                    // Check for success status and extract data correctly
+                    if (response.data && response.data.Status === "Success") {
+                        setSurveyForms(response.data.data); // Notice the nested .data
+                    } else {
+                        console.error('Failed to fetch survey forms:', response.data.message || 'Unknown error');
+                        toast.error('Failed to fetch your surveys');
+                    }
                 } catch (error) {
                     console.error('Error fetching survey forms:', error);
+                    toast.error('Could not connect to server');
                 }
             };
-
+    
             fetchSurveyForms();
         }
     }, []);
-
     const deleteForm = (id) => {
-        axios.delete(`http://localhost:5000/deletesurveyform/${id}`)
-            .then(() => {
-                toast.success('Survey form deleted successfully', {
-                    onClose: () => window.location.assign('/mysurveyforms'),
-                    
+        // Confirm before deleting
+        if (window.confirm('Are you sure you want to delete this survey?')) {
+            // Use the correct endpoint for deleting surveys
+            axios.delete(`http://localhost:5000/api/surveys/${id}`)
+                .then((response) => {
+                    if (response.data && response.data.Status === "Success") {
+                        toast.success('Survey form deleted successfully');
+                        // Update state instead of reloading the page
+                        setSurveyForms(surveyForms.filter(form => form._id !== id));
+                    } else {
+                        toast.error(response.data.message || 'Failed to delete survey form');
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error deleting survey:', error);
+                    toast.error('Server error when deleting survey');
                 });
-            })
-            .catch(() => {
-                toast.error('Failed to delete survey form');
-            });
+        }
     };
     
 
