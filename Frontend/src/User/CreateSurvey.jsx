@@ -160,8 +160,7 @@ const CreateSurvey = () => {
         userName: user.name
       };
 
-      const response = await axios.post('http://localhost:5000/api/surveys', formData);
-      
+      const response = await axios.post('http://localhost:5000/api/surveys/create', formData);      
       if (response.data && response.data.Status === "Success") {
         toast.success("Survey created successfully!");
         setSurveyId(response.data.data.surveyId);
