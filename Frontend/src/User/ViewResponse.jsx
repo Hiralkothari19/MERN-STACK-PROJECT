@@ -22,7 +22,7 @@ const ViewResponse = () => {
 
         const fetchResponses = async () => {
             try {
-                const response = await axios.get(`http://localhost:5000/api/surveys/results/${id}`);
+                const response = await axios.get(`http://localhost:5000/api/surveys/${id}/results`);
                 setResponses(response.data);
             } catch (error) {
                 console.error('Error fetching responses:', error);
@@ -34,7 +34,7 @@ const ViewResponse = () => {
     }, [id]);
 
     const deleteResponse = (responseId) => {
-        axios.delete(`http://localhost:5000/responses/${responseId}`)
+        axios.delete(`http://localhost:5000/api/surveys/responses/delete/${responseId}`)
             .then(() => {
                 setResponses(prevResponses => prevResponses.filter(response => response._id !== responseId));
                 toast.success('Response deleted successfully');
