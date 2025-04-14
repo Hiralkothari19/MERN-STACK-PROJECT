@@ -23,7 +23,7 @@ const MyForms = () => {
                 try {
                     const response = await axios.get(`http://localhost:5000/api/surveys/user/${user.id}`);
                     
-                    if (response.data && response.data.Status === "Success") {
+                    if (response.data && response.data.status === "Success") {
                         setSurveyForms(response.data.data);
                     } else {
                         setError(response.data.message || 'Failed to fetch surveys');
@@ -51,7 +51,7 @@ const MyForms = () => {
         if (window.confirm('Are you sure you want to delete this survey?')) {
             axios.delete(`http://localhost:5000/api/surveys/${id}`)
                 .then((response) => {
-                    if (response.data && response.data.Status === "Success") {
+                    if (response.data && response.data.status === "Success") {
                         toast.success('Survey deleted successfully');
                         setSurveyForms(surveyForms.filter(form => form._id !== id));
                     } else {

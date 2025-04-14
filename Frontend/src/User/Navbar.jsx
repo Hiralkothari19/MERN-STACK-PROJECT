@@ -5,24 +5,39 @@ const Navbar = () => {
     const [userName, setUserName] = useState('');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const navigate = useNavigate();
-    const id = window.location.pathname.split('/').pop() || '';
 
-
+    // Get user data on component mount
     useEffect(() => {
-        // Safely get user data from localStorage
-        try {
-            const userData = localStorage.getItem('user');
-            if (userData) {
-                const user = JSON.parse(userData);
-                setUserName(user.name || 'User');
-            } else {
-                setUserName('User');
-            }
-        } catch (error) {
-            console.error('Error parsing user data:', error);
-            setUserName('User');
+        const userData = getUserData();
+        if (userData && userData.name) {
+            setUserName(userData.name);
         }
     }, []);
+
+    const getUserData = () => {
+        try {
+            const userString = localStorage.getItem('user');
+            if (!userString) return null;
+        
+            const userData = JSON.parse(userString);
+            
+            // Strict validation
+            if (!userData || typeof userData !== 'object') {
+                throw new Error('Invalid user data structure');
+            }
+        
+            // Check for required fields (accept either id or _id)
+            if (!userData.name || (!userData.id && !userData._id)) {
+                throw new Error('Missing required user fields');
+            }
+        
+            return userData;
+        } catch (error) {
+            console.error('Error retrieving user data:', error);
+            localStorage.removeItem('user');
+            return null;
+        }
+    };
 
     const handleLogout = () => {
         // Show confirmation dialog
@@ -46,9 +61,9 @@ const Navbar = () => {
                     {/* Logo and Brand */}
                     <div className="flex items-center">
                         <div className="flex-shrink-0 flex items-center">
-                            <span className="text-2xl text-white font-bold">
+                            <Link to="/" className="text-2xl text-white font-bold">
                                 Survey<span className="text-indigo-200">Forms</span>
-                            </span>
+                            </Link>
                         </div>
                     </div>
                     
@@ -67,13 +82,6 @@ const Navbar = () => {
                             >
                                 My Surveys
                             </Link>
-                            {/* New Respond Survey Button */}
-                            {/* <Link 
-                                to="/surveyforms" 
-                                className="px-3 py-2 rounded-md text-sm font-medium text-white  hover:bg-green-700 transition-colors duration-200"
-                            >
-                                Respond to Survey
-                            </Link> */}
                             <button
                                 onClick={handleLogout}
                                 className="px-3 py-2 rounded-md text-sm font-medium text-white hover:bg-indigo-600 transition-colors duration-200"
@@ -90,6 +98,9 @@ const Navbar = () => {
                                     {userName ? userName.charAt(0).toUpperCase() : 'U'}
                                 </div>
                                 {/* User Name */}
+                                {userName && (
+                                    <span className="ml-2 text-sm font-medium text-white">{userName}</span>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -139,14 +150,6 @@ const Navbar = () => {
                         onClick={() => setIsMenuOpen(false)}
                     >
                         My Surveys
-                    </Link>
-                    {/* Added Respond Survey button to mobile menu */}
-                    <Link 
-                        to="/respondsurvey" 
-                        className="block px-3 py-2 rounded-md text-base font-medium text-white bg-green-600 hover:bg-green-700"
-                        onClick={() => setIsMenuOpen(false)}
-                    >
-                        Respond to Survey
                     </Link>
                     <button
                         onClick={() => {

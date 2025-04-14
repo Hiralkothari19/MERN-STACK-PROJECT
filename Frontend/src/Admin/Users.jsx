@@ -11,50 +11,85 @@ const Users = () => {
   const [users, setUsers] = useState([]);
   const [items, setItems] = useState([]);
   const [showDetails, setShowDetails] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const toggleDetails = () => {
     setShowDetails(!showDetails);
   };
 
   useEffect(() => {
-    axios.get('http://localhost:5000/users')
+    // Use the correct API endpoint for fetching users
+    axios.get('http://localhost:5000/api/users')
       .then((response) => {
         setUsers(response.data);
+        setLoading(false);
       })
       .catch((error) => {
+        console.error('Error fetching users:', error);
+        setError("Failed to load users");
         toast.error('Failed to fetch users.');
+        setLoading(false);
       });
   }, []);
 
   const deleteData = (userId) => {
-    axios.delete(`http://localhost:5000/userdelete/${userId}`)
-      .then(() => {
-        toast.success('User deleted successfully.');
-        setUsers(users.filter(user => user._id !== userId));
+    if (!window.confirm('Are you sure you want to delete this user?')) {
+      return;
+    }
+    
+    // Use the correct API endpoint for deleting users
+    axios.delete(`http://localhost:5000/api/users/${userId}`)
+      .then((response) => {
+        if (response.data && response.data.status === "Success") {
+          toast.success('User deleted successfully.');
+          setUsers(users.filter(user => user._id !== userId));
+        } else {
+          toast.error(response.data?.message || 'Failed to delete user.');
+        }
       })
       .catch((error) => {
+        console.error('Error deleting user:', error);
         toast.error('Failed to delete user.');
       });
   };
 
   const fetchUserSurveyForms = (userId) => {
-    axios.get(`http://localhost:5000/mysurveyforms/${userId}`)
+    // Use the correct API endpoint for fetching user surveys
+    axios.get(`http://localhost:5000/api/surveys/user/${userId}`)
       .then((response) => {
-        setItems(response.data);
-        toggleDetails();
+        if (response.data && response.data.status === "Success") {
+          setItems(response.data.data);
+          toggleDetails();
+        } else {
+          toast.info('No surveys found for this user.');
+          setItems([]);
+          toggleDetails();
+        }
       })
       .catch((error) => {
+        console.error('Error fetching user surveys:', error);
         toast.error('Error fetching survey forms.');
       });
   };
 
+  if (loading) {
+    return (
+      <div className="bg-gray-100 min-h-screen">
+        <Anavbar />
+        <div className="flex justify-center items-center h-screen">
+          <div className="w-16 h-16 border-t-4 border-b-4 border-indigo-500 rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gray-100 min-h-screen">
       <Anavbar />
-      <div className="container mx-auto  p-5 bg-white shadow-lg rounded-lg w-[1000px] mt-20">
+      <div className="container mx-auto p-5 bg-white shadow-lg rounded-lg w-[1000px] mt-20">
         <h1 className="text-center text-3xl font-bold text-gray-700">Users</h1>
         <table className="min-w-full sm:w-3/4 lg:w-1/2 mx-auto divide-y divide-gray-200 mt-5">
-
           <thead className="bg-gray-100">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sl/No</th>
@@ -94,17 +129,30 @@ const Users = () => {
           <div className="bg-white p-6 rounded-lg z-10 relative max-h-80vh overflow-y-scroll w-3/4">
             <h1 className="text-center text-blue-600 text-4xl">User Survey Forms</h1>
             <div className="container mx-auto mt-8">
-                       <div>
-                {items.map((item, index) => (
-                  <div key={item._id} className="mb-4 bg-gray-50 p-4 shadow-lg rounded-lg">
-                    <div className="flex justify-between">
-                      <div>
-                        <p>{index + 1}) <span className="font-bold">Title:</span> {item.title}</p>
-                        <p><span className="font-bold">Responses:</span> {item.responses.length}</p>
+              <div>
+                {items.length === 0 ? (
+                  <p className="text-center text-gray-500 py-4">No surveys found for this user.</p>
+                ) : (
+                  items.map((item, index) => (
+                    <div key={item._id} className="mb-4 bg-gray-50 p-4 shadow-lg rounded-lg">
+                      <div className="flex justify-between">
+                        <div>
+                          <p>{index + 1}) <span className="font-bold">Title:</span> {item.title}</p>
+                          <p><span className="font-bold">Responses:</span> {item.responses ? item.responses.length : 0}</p>
+                          <p><span className="font-bold">Created:</span> {new Date(item.createdAt).toLocaleDateString()}</p>
+                        </div>
+                        <div>
+                          <Link 
+                            to={`/adminresponses/${item._id}`}
+                            className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                          >
+                            View Responses
+                          </Link>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
             <button onClick={toggleDetails} className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">

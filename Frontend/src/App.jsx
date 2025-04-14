@@ -16,15 +16,15 @@ import AdminResponses from './Admin/AdminResponses';
 const App = () => (
     <Router>
         <Routes>
-
-        <Route path="/alogin" element={<Alogin/>} />
-        <Route path="/ahome" element={<Ahome/>} />
-        <Route path="/users" element={<Users/>} />
-        <Route path="/useredit/:id" element={<UserEdit/>} />
-        <Route path="/surveyforms" element={<SurveyForms/>} />
-        <Route path="/adminresponses/:id" element={<AdminResponses/>} />
-        
-
+            {/* Admin Routes */}
+            <Route path="/alogin" element={<Alogin/>} />
+            <Route path="/ahome" element={<Ahome/>} />
+            <Route path="/users" element={<Users/>} /> {/* Changed from /api/users */}
+            <Route path="/useredit/:id" element={<UserEdit/>} />
+            <Route path="/surveyforms" element={<SurveyForms/>} />
+            <Route path="/adminresponses/:id" element={<AdminResponses/>} />
+            
+            {/* User Routes */}
             <Route path="/" element={<Ulogin/>} />
             <Route path="/createsurvey" element={<CreateSurvey/>} />
             <Route path="/mysurveyforms" element={<MyForms/>} />
