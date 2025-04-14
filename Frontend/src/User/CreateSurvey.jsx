@@ -96,7 +96,7 @@ const CreateSurvey = () => {
   };
 
   const copyToClipboard = () => {
-    const surveyLink = `http://localhost:5173/respond/${surveyId}`;
+    const surveyLink = `respond/${surveyId}`;
     navigator.clipboard.writeText(surveyLink)
       .then(() => {
         setIsCopied(true);
@@ -138,48 +138,108 @@ const CreateSurvey = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+  
+    // Basic form validation
     if (!validateForm()) return;
-
+  
     setIsLoading(true);
-    
+  
     try {
-      const user = JSON.parse(localStorage.getItem('user'));
+      // Robust user retrieval
+      const userString = localStorage.getItem('user');
       
-      const formattedQuestions = questions.map(q => ({
-        question: q.question,
-        type: q.type,
-        options: q.type !== 'text' ? q.options : []
-      }));
-
+      if (!userString) {
+        toast.error("Please log in to create a survey");
+        setIsLoading(false);
+        return;
+      }
+  
+      let user;
+      try {
+        user = JSON.parse(userString);
+      } catch (parseError) {
+        toast.error("Invalid user data. Please log out and log in again.");
+        setIsLoading(false);
+        return;
+      }
+  
+      // Validate user object
+      if (!user || !user.id || !user.name) {
+        toast.error("Invalid user information. Please log out and log in again.");
+        setIsLoading(false);
+        return;
+      }
+  
+      // Validate and format questions
+      const formattedQuestions = questions.map(q => {
+        // Ensure each question has required fields
+        const formattedQuestion = {
+          question: q.question.trim(),
+          type: q.type
+        };
+  
+        // Add options for non-text question types
+        if (q.type !== 'text') {
+          formattedQuestion.options = q.options.map(opt => opt.trim()).filter(opt => opt !== '');
+          
+          // Ensure at least one option for multiple-choice/checkbox questions
+          if (formattedQuestion.options.length === 0) {
+            toast.error(`Question "${q.question}" must have at least one option`);
+            throw new Error('Invalid question options');
+          }
+        }
+  
+        return formattedQuestion;
+      });
+  
+      // Prepare form data
       const formData = {
-        title,
-        description,
+        title: title.trim(),
+        description: description.trim(),
         questions: formattedQuestions,
         userId: user.id,
         userName: user.name
       };
-
-      const response = await axios.post('http://localhost:5000/api/surveys/create', formData);      
-      if (response.data && response.data.Status === "Success") {
+  
+      // Submit survey
+      const response = await axios.post('api/surveys/create', formData);
+  
+      // Handle successful response
+      if (response.data && response.data.status === "Success") {
         toast.success("Survey created successfully!");
         setSurveyId(response.data.data.surveyId);
-        
+  
         // Smoothly scroll to the share section
         setTimeout(() => {
           document.getElementById('share-section')?.scrollIntoView({ behavior: 'smooth' });
         }, 500);
       } else {
+        // Handle server-side validation errors
         toast.error(response.data?.message || "Failed to create survey");
       }
     } catch (error) {
-      console.error("There was an error submitting the form!", error);
-      toast.error("Failed to create survey. Please try again later.");
+      // Comprehensive error handling
+      console.error("Survey creation error:", error);
+  
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        const errorMessage = error.response.data?.message || 
+          error.response.data?.error || 
+          "Failed to create survey due to server error";
+        
+        toast.error(errorMessage);
+      } else if (error.request) {
+        // The request was made but no response was received
+        toast.error("No response from server. Please check your internet connection.");
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        toast.error("An unexpected error occurred. Please try again later.");
+      }
     } finally {
       setIsLoading(false);
     }
   };
-
   const toggleTips = () => {
     setShowTips(!showTips);
   };
@@ -444,7 +504,7 @@ const CreateSurvey = () => {
             <div className="flex items-center bg-gray-100 p-3 rounded-lg mb-4">
               <input
                 type="text"
-                value={`http://localhost:5173/respond/${surveyId}`}
+                value={`/respond/${surveyId}`}
                 readOnly
                 className="bg-transparent flex-grow outline-none text-gray-700"
               />

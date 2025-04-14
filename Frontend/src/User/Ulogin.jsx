@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
@@ -24,75 +24,244 @@ const Ulogin = () => {
   // Handle login submission with loading state and improved error handling
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
+    
     let payload = { email: loginEmail, password: loginPassword };
-    axios.post("http://localhost:5000/api/user/login", payload)
-      .then((res) => {
-        console.log("login: " + res.data.Status);
-        if (res.data.Status === "Success") {
-          console.log(res.data.user);
-          localStorage.setItem('user', JSON.stringify(res.data.user));
-          toast.success("Login successful");
-          setTimeout(() => navigate('/createsurvey'), 2000); // Add a delay before navigation
-        } else {
-          toast.error(res.data.message || "Login failed");
+    
+    try {
+      const response = await axios.post("/api/user/login", payload, {
+        timeout: 8000 // 8-second timeout
+      });
+      
+      if (response.data.status === "Success") {
+        // Store user data correctly
+        if (response.data.data && response.data.data.user) {
+          localStorage.setItem('user', JSON.stringify(response.data.data.user));
+        } else if (response.data.user) {
+          localStorage.setItem('user', JSON.stringify(response.data.user));
         }
-      })
-      .catch((err) => console.log(err));
+        
+        toast.success("Login successful");
+        setTimeout(() => navigate('/createsurvey'), 2000);
+      } else {
+        toast.error(response.data.message || "Login failed");
+      }
+    } catch (err) {
+      console.error("Login error details:", err);
+      
+      if (err.code === 'ECONNABORTED') {
+        toast.error("Request timed out. Server may be unavailable.");
+      } else if (err.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        toast.error(err.response.data?.message || `Error: ${err.response.status}`);
+      } else if (err.request) {
+        // The request was made but no response was received
+        toast.error("No response from server. Please check if server is running.");
+      } else {
+        // Something happened in setting up the request
+        toast.error(err.message || "An error occurred during login");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Enhanced signup with form validation and loading state
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
+    
     let payload = { name: signupName, email: signupEmail, password: signupPassword };
-    axios.post("http://localhost:5000/api/user/signup", payload)
-      .then((result) => {
-        console.log(result);
-        if (result.data.Status === "Success") {
-          toast.success("Account created");
-        } else {
-          toast.error(result.data.message || "Already a user");
-        }
-      })
-      .catch((err) => {
-        console.log(err);
-        toast.error("Failed to create an account");
-      });
+    
+    try {
+      const result = await axios.post("/api/user/signup", payload);
+      
+      if (result.data.status === "Success") {
+        toast.success("Account created successfully");
+        // Clear form
+        setSignupName('');
+        setSignupEmail('');
+        setSignupPassword('');
+        // Switch to login tab
+        setIsLoginActive(true);
+      } else {
+        toast.error(result.data.message || "User already exists");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to create an account");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div style={{ background: "linear-gradient(to bottom, #0f0c29, #302b63, #24243e)", minHeight: "100vh", paddingTop: "75px" }}>
-      <Link to='/alogin' style={{ color: "blue", display: 'flex', justifyContent: "center", fontSize: "25px" }}>Login As Admin</Link>
-      <div style={{ display: 'flex', justifyContent: "center", }} >
-        <p style={{ width: "250px", color: "blue", borderBottom: "2px solid" }}></p>
+    <div className="min-h-screen flex flex-col items-center p-5 bg-gradient-to-br from-[#24243e] via-[#302b63] to-[#0f0c29] font-sans">
+      <div className="w-full max-w-md mb-8 text-center">
+        <h1 className="text-4xl text-white font-semibold mb-4">Survey System</h1>
+        <Link to='/alogin' className="inline-block text-gray-100 text-sm px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 hover:text-white hover:-translate-y-0.5 transition-all hover:shadow-md">
+          Login As Admin
+        </Link>
       </div>
-      <div id="loginform" style={{ paddingTop: "20px" }}>
-        <br />
-        <div id="main">
-          <input type="checkbox" id="chk" aria-hidden="true" />
-          <div id="login">
-            <form onSubmit={handleLoginSubmit}>
-              <label htmlFor="chk" aria-hidden="true" id="labell">User  Login</label>
-              <input type="email" name="email" placeholder="Email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required id="inputl1" />
-              <input type="password" name="password" placeholder="Password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required id="inputl2" />
-              <button id="buttonl">Login</button>
-            </form>
-          </div>
-          
-          <div id="signup">
-            <form onSubmit={handleSignupSubmit}>
-              <label htmlFor="chk" aria-hidden="true" id="labels">Sign up</label>
-              <input type="text" name="name" placeholder="User name" value={signupName} onChange={(e) => setSignupName(e.target.value)} required id="inputs1" />
-              <input type="email" name="email" placeholder="Email" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required id="inputs2" />
-              <input type="password" name="password" placeholder="Password" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required id="inputs3" />
-              <button id="buttons">Sign up</button>
-            </form>
+      
+      <div className="w-full max-w-md bg-white rounded-xl shadow-xl overflow-hidden mb-8">
+        <div className="flex border-b border-gray-200">
+          <button 
+            className={`flex-1 py-4 text-base font-medium transition-colors ${isLoginActive ? 'text-blue-500 shadow-[inset_0_-2px_0_0_#3b82f6]' : 'text-gray-500 hover:bg-gray-50'}`}
+            onClick={() => setIsLoginActive(true)}
+          >
+            Login
+          </button>
+          <button 
+            className={`flex-1 py-4 text-base font-medium transition-colors ${!isLoginActive ? 'text-blue-500 shadow-[inset_0_-2px_0_0_#3b82f6]' : 'text-gray-500 hover:bg-gray-50'}`}
+            onClick={() => setIsLoginActive(false)}
+          >
+            Sign Up
+          </button>
+        </div>
+        
+        <div className="p-6 md:p-8">
+          {isLoginActive ? (
+            <div>
+              <h2 className="text-2xl text-gray-800 font-semibold mb-2">Welcome Back</h2>
+              <p className="text-sm text-gray-500 mb-6">Enter your credentials to continue</p>
+              
+              <form onSubmit={handleLoginSubmit}>
+                <div className="mb-5">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-600 mb-1.5">
+                    Email Address
+                  </label>
+                  <input 
+                    type="email" 
+                    id="email" 
+                    placeholder="you@example.com" 
+                    value={loginEmail} 
+                    onChange={(e) => setLoginEmail(e.target.value)} 
+                    required 
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base transition-all focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                
+                <div className="mb-5">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-600 mb-1.5">
+                    Password
+                  </label>
+                  <input 
+                    type="password" 
+                    id="password" 
+                    placeholder="********" 
+                    value={loginPassword} 
+                    onChange={(e) => setLoginPassword(e.target.value)} 
+                    required 
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base transition-all focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                
+                <button 
+                  type="submit" 
+                  disabled={isLoading}
+                  className={`w-full py-3 px-4 rounded-lg text-white font-medium mt-3 transition-all ${
+                    isLoading 
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-blue-500 hover:bg-blue-600 hover:-translate-y-0.5 hover:shadow-md'
+                  }`}
+                >
+                  {isLoading ? 'Logging in...' : 'Login'}
+                </button>
+              </form>
+              
+              <div className="mt-6 text-center text-sm text-gray-500">
+                Don't have an account?{' '}
+                <button 
+                  onClick={() => setIsLoginActive(false)}
+                  className="text-blue-500 font-medium hover:underline"
+                >
+                  Sign up
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <h2 className="text-2xl text-gray-800 font-semibold mb-2">Create Account</h2>
+              <p className="text-sm text-gray-500 mb-6">Sign up to get started</p>
+              
+              <form onSubmit={handleSignupSubmit}>
+                <div className="mb-5">
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-600 mb-1.5">
+                    Full Name
+                  </label>
+                  <input 
+                    type="text" 
+                    id="name" 
+                    placeholder="John Doe" 
+                    value={signupName} 
+                    onChange={(e) => setSignupName(e.target.value)} 
+                    required 
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base transition-all focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                
+                <div className="mb-5">
+                  <label htmlFor="signup-email" className="block text-sm font-medium text-gray-600 mb-1.5">
+                    Email Address
+                  </label>
+                  <input 
+                    type="email" 
+                    id="signup-email" 
+                    placeholder="you@example.com" 
+                    value={signupEmail} 
+                    onChange={(e) => setSignupEmail(e.target.value)} 
+                    required 
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base transition-all focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                
+                <div className="mb-5">
+                  <label htmlFor="signup-password" className="block text-sm font-medium text-gray-600 mb-1.5">
+                    Password
+                  </label>
+                  <input 
+                    type="password" 
+                    id="signup-password" 
+                    placeholder="Choose a strong password" 
+                    value={signupPassword} 
+                    onChange={(e) => setSignupPassword(e.target.value)} 
+                    required 
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base transition-all focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                
+                <button 
+                  type="submit" 
+                  disabled={isLoading}
+                  className={`w-full py-3 px-4 rounded-lg text-white font-medium mt-3 transition-all ${
+                    isLoading 
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-blue-500 hover:bg-blue-600 hover:-translate-y-0.5 hover:shadow-md'
+                  }`}
+                >
+                  {isLoading ? 'Creating Account...' : 'Sign Up'}
+                </button>
+              </form>
+              
+              <div className="mt-6 text-center text-sm text-gray-500">
+                Already have an account?{' '}
+                <button 
+                  onClick={() => setIsLoginActive(true)}
+                  className="text-blue-500 font-medium hover:underline"
+                >
+                  Login
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </div>
       
       <ToastContainer
         position="top-center"
-        autoClose={1500} // Adjust autoClose time if needed
+        autoClose={1500}
         hideProgressBar={false}
         newestOnTop
         closeOnClick
@@ -102,186 +271,6 @@ const Ulogin = () => {
         pauseOnHover
         theme="colored"
       />
-      
-      <style jsx>{`
-        /* Modern authentication styling */
-        .auth-container {
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 20px;
-          background: linear-gradient(135deg, #24243e 0%, #302b63 50%, #0f0c29 100%);
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        .auth-header {
-          width: 100%;
-          max-width: 450px;
-          margin-bottom: 30px;
-          text-align: center;
-        }
-        
-        .auth-header h1 {
-          color: white;
-          font-size: 2.5rem;
-          margin-bottom: 15px;
-          font-weight: 600;
-        }
-        
-        .admin-link {
-          display: inline-block;
-          color: #94a3b8;
-          text-decoration: none;
-          font-size: 0.9rem;
-          padding: 8px 16px;
-          border-radius: 20px;
-          background-color: rgba(255, 255, 255, 0.1);
-          transition: all 0.3s ease;
-        }
-        
-        .admin-link:hover {
-          background-color: rgba(255, 255, 255, 0.2);
-          color: white;
-        }
-        
-        .auth-card {
-          width: 100%;
-          max-width: 450px;
-          background-color: white;
-          border-radius: 12px;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-          overflow: hidden;
-        }
-        
-        .auth-tabs {
-          display: flex;
-          border-bottom: 1px solid #e2e8f0;
-        }
-        
-        .tab-btn {
-          flex: 1;
-          background: none;
-          border: none;
-          padding: 16px;
-          font-size: 1rem;
-          font-weight: 500;
-          color: #64748b;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-        
-        .tab-btn.active {
-          color: #3b82f6;
-          box-shadow: inset 0 -2px 0 #3b82f6;
-        }
-        
-        .tab-btn:hover {
-          background-color: #f8fafc;
-        }
-        
-        .form-container {
-          padding: 30px;
-        }
-        
-        .auth-form {
-          width: 100%;
-        }
-        
-        .auth-form h2 {
-          font-size: 1.5rem;
-          color: #1e293b;
-          margin-bottom: 8px;
-        }
-        
-        .form-subtitle {
-          font-size: 0.9rem;
-          color: #64748b;
-          margin-bottom: 24px;
-        }
-        
-        .form-group {
-          margin-bottom: 20px;
-        }
-        
-        .form-group label {
-          display: block;
-          font-size: 0.875rem;
-          font-weight: 500;
-          color: #475569;
-          margin-bottom: 6px;
-        }
-        
-        .form-group input {
-          width: 100%;
-          padding: 12px 16px;
-          border: 1px solid #cbd5e1;
-          border-radius: 8px;
-          font-size: 1rem;
-          transition: all 0.3s ease;
-        }
-        
-        .form-group input:focus {
-          outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-        }
-        
-        .submit-btn {
-          width: 100%;
-          padding: 12px;
-          background-color: #3b82f6;
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-size: 1rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          margin-top: 10px;
-        }
-        
-        .submit-btn:hover {
-          background-color: #2563eb;
-        }
-        
-        .submit-btn:disabled {
-          background-color: #94a3b8;
-          cursor: not-allowed;
-        }
-        
-        .form-footer {
-          margin-top: 24px;
-          text-align: center;
-          font-size: 0.875rem;
-          color: #64748b;
-        }
-        
-        .link-btn {
-          background: none;
-          border: none;
-          color: #3b82f6;
-          font-size: 0.875rem;
-          font-weight: 500;
-          cursor: pointer;
-          padding: 0;
-        }
-        
-        .link-btn:hover {
-          text-decoration: underline;
-        }
-        
-        /* Responsive adjustments */
-        @media (max-width: 500px) {
-          .form-container {
-            padding: 20px;
-          }
-          
-          .auth-header h1 {
-            font-size: 2rem;
-          }
-        }
-      `}</style>
     </div>
   );
 };

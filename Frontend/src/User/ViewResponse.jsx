@@ -13,7 +13,7 @@ const ViewResponse = () => {
     useEffect(() => {
         const fetchSurvey = async () => {
             try {
-                const surveyResponse = await axios.get(`http://localhost:5000/api/surveys/${id}`);
+                const surveyResponse = await axios.get(`/api/surveys/${id}`);
                 setSurvey(surveyResponse.data);
             } catch (error) {
                 console.error('Error fetching survey:', error);
@@ -22,7 +22,7 @@ const ViewResponse = () => {
 
         const fetchResponses = async () => {
             try {
-                const response = await axios.get(`http://localhost:5000/api/surveys/${id}/results`);
+                const response = await axios.get(`/api/surveys/${id}/results`);
                 setResponses(response.data);
             } catch (error) {
                 console.error('Error fetching responses:', error);
@@ -34,7 +34,7 @@ const ViewResponse = () => {
     }, [id]);
 
     const deleteResponse = (responseId) => {
-        axios.delete(`http://localhost:5000/api/surveys/responses/delete/${responseId}`)
+        axios.delete(`/api/surveys/responses/delete/${responseId}`)
             .then(() => {
                 setResponses(prevResponses => prevResponses.filter(response => response._id !== responseId));
                 toast.success('Response deleted successfully');
