@@ -14,19 +14,28 @@ const Survey = require("./db/User/surveySchema");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// For Vercel serverless function, we need to export the app
+module.exports = app;
+
 // Middleware
 // More explicit CORS configuration
 app.use(cors({
-  origin: 'http://localhost:5173', // Your React app's address
+  origin: process.env.NODE_ENV === 'production' 
+    ? [process.env.FRONTEND_URL || 'https://your-vercel-app.vercel.app'] 
+    : 'http://localhost:5173',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
+
 app.use(express.json()); // Add space or newline between middleware setup
 // MongoDB Connection Setup
 mongoose.set('strictQuery', false);
 
+// Connection with environment variable for MongoDB Atlas
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/survey_system';
+
 // Connection with all possible options
-mongoose.connect('mongodb://localhost:27017/survey_system', {
+mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   serverSelectionTimeoutMS: 60000, // Increase timeout to 60 seconds
@@ -517,8 +526,6 @@ const validateSurveyQuestions = (questions) => {
   });
 };
 
-// Get all surveys
-// Get all surveys - FIXED VERSION
 // Get all surveys - FIXED VERSION
 app.get('/api/surveys', async (req, res) => {
   try {
@@ -737,46 +744,4 @@ app.delete('/api/surveys/responses/delete/:responseId', async (req, res) => {
     console.error("Delete response error:", error);
     res.status(500).json(formatResponse("Error", null, "Server error"));
   }
-});
-
-// Delete response (original route for backward compatibility)
-app.delete('/api/surveys/responses/:responseId', async (req, res) => {
-  try {
-    const responseId = req.params.responseId;
-    
-    // Validate ObjectId format
-    if (!mongoose.Types.ObjectId.isValid(responseId)) {
-      return res.status(400).json(formatResponse("Error", null, "Invalid response ID format"));
-    }
-    
-    const result = await Survey.updateOne(
-      { 'responses._id': responseId },
-      { $pull: { responses: { _id: responseId } } }
-    );
-    
-    if (result.modifiedCount === 0) {
-      return res.status(404).json(formatResponse("Failed", null, "Response not found"));
-    }
-    
-    res.status(204).end();
-  } catch (error) {
-    console.error("Delete response error:", error);
-    res.status(500).json(formatResponse("Error", null, "Server error"));
-  }
-});
-
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error("Unhandled error:", err);
-  res.status(500).json(formatResponse("Error", null, "Internal server error"));
-});
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json(formatResponse("Error", null, "Endpoint not found"));
-});
-
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
 });

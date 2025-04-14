@@ -21,8 +21,7 @@ const MyForms = () => {
             const fetchSurveyForms = async () => {
                 setLoading(true);
                 try {
-                    const response = await axios.get(`http://localhost:5000/api/surveys/user/${user.id}`);
-                    
+                    const response = await axios.get(`/api/surveys/user/${user.id}`);                                        
                     if (response.data && response.data.status === "Success") {
                         setSurveyForms(response.data.data);
                     } else {
@@ -66,7 +65,7 @@ const MyForms = () => {
     };
     
     const copyToClipboard = (id) => {
-        const surveyLink = `http://localhost:5173/respond/${id}`;
+        const surveyLink = `/respond/${id}`;
         navigator.clipboard.writeText(surveyLink)
             .then(() => {
                 setCopiedId(id);
@@ -222,7 +221,7 @@ const MyForms = () => {
                                                 View Responses
                                             </Link>
                                             <a 
-                                                href={`http://localhost:5173/respond/${survey._id}`}
+                                                href={`/respond/${survey._id}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"

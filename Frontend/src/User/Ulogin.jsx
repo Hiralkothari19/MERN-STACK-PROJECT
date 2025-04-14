@@ -75,7 +75,7 @@ const Ulogin = () => {
     let payload = { name: signupName, email: signupEmail, password: signupPassword };
     
     try {
-      const result = await axios.post("http://localhost:5000/api/user/signup", payload);
+      const result = await axios.post("/api/user/signup", payload);
       
       if (result.data.status === "Success") {
         toast.success("Account created successfully");
