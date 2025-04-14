@@ -4,7 +4,6 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const { body, validationResult } = require("express-validator");
-const authMiddleware = require('./middleware'); // Adjust the path as necessary
 
 // Import your database models
 const Admin = require("./db/Admin/adminSchema");
