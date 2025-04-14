@@ -21,7 +21,7 @@ const RespondSurvey = () => {
         const fetchSurvey = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get(`http://localhost:5000/api/surveys/${id}`);
+                const response = await axios.get(`/api/surveys/${id}`);
                 if (response.data && response.data.status === "Success") {
                     setSurvey(response.data.data);
                     // Initialize responses array based on the number of questions
@@ -142,7 +142,7 @@ const RespondSurvey = () => {
         }));
         
         try {
-            const response = await axios.post(`http://localhost:5000/api/surveys/respond/${id}`, {
+            const response = await axios.post(`/api/surveys/respond/${id}`, {
                 respondent,
                 answers: formattedResponses
             });

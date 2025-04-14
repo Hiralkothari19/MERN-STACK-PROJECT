@@ -31,7 +31,7 @@ const Alogin = () => {
     let payload = { email: loginEmail, password: loginPassword };
     
     try {
-      const response = await axios.post("http://localhost:5000/api/admin/login", payload);
+      const response = await axios.post("/api/admin/login", payload);
       
       // Log response for debugging
       logResponseDetails(response);
@@ -71,7 +71,7 @@ const Alogin = () => {
     let payload = { name: signupName, email: signupEmail, password: signupPassword };
     
     try {
-      const response = await axios.post("http://localhost:5000/api/admin/signup", payload);
+      const response = await axios.post("/api/admin/signup", payload);
       
       // Log response for debugging
       logResponseDetails(response);

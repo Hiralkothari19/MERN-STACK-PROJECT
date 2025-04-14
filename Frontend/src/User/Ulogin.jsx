@@ -29,7 +29,7 @@ const Ulogin = () => {
     let payload = { email: loginEmail, password: loginPassword };
     
     try {
-      const response = await axios.post("http://localhost:5000/api/user/login", payload, {
+      const response = await axios.post("/api/user/login", payload, {
         timeout: 8000 // 8-second timeout
       });
       

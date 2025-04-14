@@ -15,7 +15,7 @@ const AdminResponses = () => {
     useEffect(() => {
         const fetchSurvey = async () => {
             try {
-                const surveyResponse = await axios.get(`http://localhost:5000/api/surveys/${id}`);
+                const surveyResponse = await axios.get(`/api/surveys/${id}`);
                 if (surveyResponse.data && surveyResponse.data.status === "Success") {
                     setSurvey(surveyResponse.data.data);
                 } else {
@@ -32,7 +32,7 @@ const AdminResponses = () => {
         const fetchResponses = async () => {
             try {
                 // Using the correct endpoint as defined in server.js
-                const response = await axios.get(`http://localhost:5000/api/surveys/${id}/results`);
+                const response = await axios.get(`/api/surveys/${id}/results`);
                 if (response.data && response.data.status === "Success") {
                     setResponses(response.data.data);
                 } else {
@@ -52,7 +52,7 @@ const AdminResponses = () => {
 
     const deleteResponse = (responseId) => {
         // Using the correct endpoint as defined in server.js
-        axios.delete(`http://localhost:5000/api/surveys/responses/delete/${responseId}`)
+        axios.delete(`/api/surveys/responses/delete/${responseId}`)
             .then((response) => {
                 if (response.data && response.data.status === "Success") {
                     setResponses(prevResponses => prevResponses.filter(response => response._id !== responseId));

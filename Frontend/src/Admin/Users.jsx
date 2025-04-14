@@ -20,7 +20,7 @@ const Users = () => {
 
   useEffect(() => {
     // Use the correct API endpoint for fetching users
-    axios.get('http://localhost:5000/api/users')
+    axios.get('/api/users')
       .then((response) => {
         setUsers(response.data);
         setLoading(false);
@@ -39,7 +39,7 @@ const Users = () => {
     }
     
     // Use the correct API endpoint for deleting users
-    axios.delete(`http://localhost:5000/api/users/${userId}`)
+    axios.delete(`/api/users/${userId}`)
       .then((response) => {
         if (response.data && response.data.status === "Success") {
           toast.success('User deleted successfully.');
@@ -56,7 +56,7 @@ const Users = () => {
 
   const fetchUserSurveyForms = (userId) => {
     // Use the correct API endpoint for fetching user surveys
-    axios.get(`http://localhost:5000/api/surveys/user/${userId}`)
+    axios.get(`/api/surveys/user/${userId}`)
       .then((response) => {
         if (response.data && response.data.status === "Success") {
           setItems(response.data.data);

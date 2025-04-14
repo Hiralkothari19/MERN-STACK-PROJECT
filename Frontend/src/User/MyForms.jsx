@@ -49,7 +49,7 @@ const MyForms = () => {
 
     const deleteForm = (id) => {
         if (window.confirm('Are you sure you want to delete this survey?')) {
-            axios.delete(`http://localhost:5000/api/surveys/${id}`)
+            axios.delete(`/api/surveys/${id}`)
                 .then((response) => {
                     if (response.data && response.data.status === "Success") {
                         toast.success('Survey deleted successfully');

@@ -96,7 +96,7 @@ const CreateSurvey = () => {
   };
 
   const copyToClipboard = () => {
-    const surveyLink = `http://localhost:5173/respond/${surveyId}`;
+    const surveyLink = `respond/${surveyId}`;
     navigator.clipboard.writeText(surveyLink)
       .then(() => {
         setIsCopied(true);
@@ -202,7 +202,7 @@ const CreateSurvey = () => {
       };
   
       // Submit survey
-      const response = await axios.post('http://localhost:5000/api/surveys/create', formData);
+      const response = await axios.post('api/surveys/create', formData);
   
       // Handle successful response
       if (response.data && response.data.status === "Success") {
@@ -504,7 +504,7 @@ const CreateSurvey = () => {
             <div className="flex items-center bg-gray-100 p-3 rounded-lg mb-4">
               <input
                 type="text"
-                value={`http://localhost:5173/respond/${surveyId}`}
+                value={`/respond/${surveyId}`}
                 readOnly
                 className="bg-transparent flex-grow outline-none text-gray-700"
               />

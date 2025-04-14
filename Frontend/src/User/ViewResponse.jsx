@@ -34,7 +34,7 @@ const ViewResponse = () => {
     }, [id]);
 
     const deleteResponse = (responseId) => {
-        axios.delete(`http://localhost:5000/api/surveys/responses/delete/${responseId}`)
+        axios.delete(`/api/surveys/responses/delete/${responseId}`)
             .then(() => {
                 setResponses(prevResponses => prevResponses.filter(response => response._id !== responseId));
                 toast.success('Response deleted successfully');

@@ -20,11 +20,11 @@ function Ahome() {
         setLoading(true);
         
         // Fetch users with correct endpoint
-        const usersResponse = await axios.get(`http://localhost:5000/api/users`);
+        const usersResponse = await axios.get(`/api/users`);
         setUsers(usersResponse.data);
         
         // Fetch surveys with correct endpoint
-        const surveysResponse = await axios.get(`http://localhost:5000/api/surveys`);
+        const surveysResponse = await axios.get(`/api/surveys`);
         
         // Handle the nested data structure from formatResponse
         if (surveysResponse.data && surveysResponse.data.status === "Success") {

@@ -22,7 +22,7 @@ const UserEdit = () => {
         const fetchUser = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get(`http://localhost:5000/api/users/${id}`);
+                const response = await axios.get(`/api/users/${id}`);
                 if (response.data) {
                     setUser(response.data);
                 } else {
@@ -52,7 +52,7 @@ const UserEdit = () => {
         try {
             // Add endpoint to server.js to update a user
             setLoading(true);
-            const response = await axios.put(`http://localhost:5000/api/users/${id}`, user);
+            const response = await axios.put(`/api/users/${id}`, user);
             
             if (response.data && response.data.status === "Success") {
                 toast.success('User updated successfully');

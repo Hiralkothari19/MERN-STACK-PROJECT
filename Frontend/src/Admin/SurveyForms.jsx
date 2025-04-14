@@ -14,7 +14,7 @@ const SurveyForms = () => {
     const fetchSurveys = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:5000/api/surveys');
+        const response = await axios.get('/api/surveys');
         
         // Properly handle the nested data structure
         if (response.data && response.data.status === "Success") {
@@ -38,7 +38,7 @@ const SurveyForms = () => {
   const deleteSurvey = async (id) => {
     if (window.confirm("Are you sure you want to delete this survey?")) {
       try {
-        const response = await axios.delete(`http://localhost:5000/api/surveys/${id}`);
+        const response = await axios.delete(`/api/surveys/${id}`);
         
         if (response.data && response.data.status === "Success") {
           setSurveys(surveys.filter(survey => survey._id !== id));
